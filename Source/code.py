@@ -1,4 +1,4 @@
-# ------------------------- BlockTron.io Version 2.3.0  ------------------------
+# ------------------------- BlockTron.io Version 2.3.A  ------------------------
 import time
 import board
 import gc
@@ -11,6 +11,7 @@ import wifi
 import rtc
 import errno
 from adafruit_matrixportal.matrixportal import MatrixPortal
+import storage
 
 # ------------------------- Global Dim Level -----------------------------------
 GLOBAL_DIM_LEVEL = 10  # change this from 1..10 as you like
