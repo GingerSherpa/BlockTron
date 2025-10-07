@@ -1,5 +1,9 @@
 # boot.py — OTA-aware + original QR welcome
 
+import microcontroller, storage
+if microcontroller.nvm[0] in (1, 3):  # 1=download, 3=swap
+    storage.disable_usb_drive()
+
 import os, time, json, microcontroller, storage
 
 # ----- OTA constants -----
