@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "Deploy to CircuitPython Device",
+			"command": "Copy-Item -Path .\\Source\\* -Destination D:\\ -Recurse -Force",
+			"args": [],
+			"group": "build",
+			"problemMatcher": []
+		}
+	]
+}

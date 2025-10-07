@@ -1,0 +1,4 @@
+1.5 - initial public release for PubKey NYC BlockTron
+2.0 - Vegas 2025 Founders Edition release, better error handling, API authentication, updated to circuit python 9.2.7 libs
+2.1 - Founders Edition release, fixed screen blank issue due to wifi issues and unhandled API exception, improved NTP sync reliability and retries
+2.2 - Founders Edition release, added option to dim display, added this version_history file to keep things sorted
