@@ -2,6 +2,7 @@
 import time
 import board
 import gc
+import os
 import microcontroller
 import adafruit_ntp
 import json
@@ -77,6 +78,7 @@ last_ticker_update = time.monotonic()
 last_gc_check = time.monotonic()
 last_settings_fetch = time.monotonic()
 last_time_update = time.monotonic()
+last_ota_check = time.monotonic()
 current_time_display = "0000"  # Initialize with a default value
 
 last_displayed_btc_price = None
@@ -514,6 +516,154 @@ def maybe_collect_garbage(current_time):
         last_gc_check = current_time
 
 
+# -------- OTA CONFIG (edit repo info only) --------
+OTA_ENABLED = True
+OTA_CHECK_INTERVAL = 6 * 60 * 60  # seconds
+OTA_REPO_BASE = "https://raw.githubusercontent.com/GingerSherpa/BlockTron/features/ota/Source/"  # <-- set
+OTA_TARGETS = {
+    "code.py": f"{OTA_REPO_BASE}/code.py",
+    "boot.py": f"{OTA_REPO_BASE}/boot.py",
+    "version_history.txt": f"{OTA_REPO_BASE}/version_history.txt",
+}
+_OTA_STAGE_FILE = "/ota_stage.json"
+_OTA_CONFIRM_FILE = "/ota_confirmed"
+
+def _ota_exists(p):
+    try:
+        os.stat(p)
+        return True
+    except OSError:
+        return False
+
+def ota_mark_success():
+    # Called on successful start after an OTA; clears verify state for boot.py
+    try:
+        if microcontroller.nvm[0] == 2:
+            with open(_OTA_CONFIRM_FILE, "w") as f:
+                f.write("ok")
+            nvm = microcontroller.nvm
+            nvm[0] = 0
+            nvm[1] = 0
+            try:
+                if _ota_exists(_OTA_STAGE_FILE):
+                    os.remove(_OTA_STAGE_FILE)
+            except OSError:
+                pass
+            timed_print("OTA: confirmed")
+    except Exception as e:
+        timed_print("OTA confirm err:", e)
+
+def _http_get(url, stream=False, timeout=10):
+    # Use the same session your code already uses
+    resp = matrixportal.network.requests.get(url, timeout=timeout)
+    return resp
+
+def _download_to_temp(name, url):
+    resp = None
+    try:
+        resp = _http_get(url, timeout=20)
+        if resp.status_code != 200:
+            timed_print("OTA GET fail", name, resp.status_code)
+            return False
+        data = resp.content  # small text files; safe to buffer
+        if not data or len(data) < 32:
+            timed_print("OTA too small", name, len(data))
+            return False
+        # very light sanity check on code files
+        if name.endswith(".py") and (b"import " not in data):
+            timed_print("OTA sanity fail", name)
+            return False
+        with open(name + ".new", "wb") as f:
+            f.write(data)
+        timed_print("OTA fetched", name, len(data), "bytes")
+        return True
+    except Exception as e:
+        timed_print("OTA fetch err:", name, e)
+        return False
+    finally:
+        try:
+            if resp:
+                resp.close()
+        except Exception:
+            pass
+
+def _local_version_txt():
+    try:
+        with open("/version_history.txt", "rb") as f:
+            return f.read()
+    except Exception:
+        return b""
+
+def _remote_version_txt():
+    resp = None
+    try:
+        url = OTA_TARGETS["version_history.txt"]
+        resp = _http_get(url, timeout=10)
+        if resp.status_code == 200:
+            return resp.content
+    except Exception:
+        pass
+    finally:
+        try:
+            if resp:
+                resp.close()
+        except Exception:
+            pass
+    return None
+
+def check_for_update_and_stage():
+    if not OTA_ENABLED:
+        return
+    # Compare version_history.txt blobs; update when they differ
+    remote = _remote_version_txt()
+    if not remote:
+        return
+    local = _local_version_txt()
+    if remote == local:
+        return
+
+    timed_print("OTA: version change detected; staging update")
+    try:
+        # Mark "downloading" so code.py disables USB (you already have this prelude)
+        nvm = microcontroller.nvm
+        nvm[0] = 1
+
+        ok = True
+        for name, url in OTA_TARGETS.items():
+            ok &= _download_to_temp(name, url)
+
+        if not ok:
+            timed_print("OTA: download failed; aborting")
+            nvm[0] = 0
+            # clean partial .new files
+            for name in OTA_TARGETS.keys():
+                try:
+                    if _ota_exists(name + ".new"):
+                        os.remove(name + ".new")
+                except OSError:
+                    pass
+            return
+
+        # Write stage manifest for boot.py
+        try:
+            with open(_OTA_STAGE_FILE, "w") as f:
+                json.dump({"files": list(OTA_TARGETS.keys())}, f)
+        except Exception as e:
+            timed_print("OTA: cannot write stage file:", e)
+            nvm[0] = 0
+            return
+
+        timed_print("OTA: staged; rebooting for atomic swap")
+        nvm[0] = 3  # tell boot.py to swap .new -> live
+        microcontroller.reset()
+
+    except Exception as e:
+        timed_print("OTA exception:", e)
+        microcontroller.nvm[0] = 0  # clear flag on error
+
+# Call once early on successful startup to confirm new build, if any
+ota_mark_success()
+
 # -----------------------------------------------------------------------------
 #                                   MAIN LOOP
 # -----------------------------------------------------------------------------
@@ -605,5 +755,10 @@ while True:
         last_settings_fetch = current_time
     # Check for garbage collection
     maybe_collect_garbage(current_time)
+
+    # Periodic OTA check
+    if OTA_ENABLED and (current_time - last_ota_check) >= OTA_CHECK_INTERVAL:
+        check_for_update_and_stage()
+        last_ota_check = current_time
 
     time.sleep(device_button_check_interval)
