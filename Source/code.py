@@ -36,9 +36,8 @@ def dim_color(color: int, level: int) -> int:
 
     # Scale each channel
     r0 = ((color >> 16) & 0xFF) * frac
-    g0 = ((color >>  8) & 0xFF) * frac
-    b0 = ( color        & 0xFF) * frac
-
+    g0 = ((color >> 8) & 0xFF) * frac
+    b0 = (color & 0xFF) * frac
     # Ensure non-zero channels stay at least 1
     r = max(int(r0), 1) if r0 > 0 else 0
     g = max(int(g0), 1) if g0 > 0 else 0
@@ -549,7 +548,7 @@ def ota_mark_success():
             try:
                 if _ota_exists(_OTA_STAGE_FILE):
                     os.remove(_OTA_STAGE_FILE)
-		    microcontroller.reset()
+                    microcontroller.reset()
             except OSError:
                 pass
             timed_print("OTA: confirmed")
