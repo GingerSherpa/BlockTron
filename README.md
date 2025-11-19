@@ -37,3 +37,13 @@ Designed for Adafruit CircuitPython 9.2.7 on 2025-04-01; Adafruit MatrixPortal S
 # Dev Deployment in VS Code
 - Go to command palette and type "Tasks: Run Tasks"
 - Select or Type "Deploy to CircuitPython Device"
+
+# Important Identifiers
+- microconstroller.nvm has a few flags:
+  - Index 0:
+    - 0: Normal mode
+    - 1: Active Download (set usb to readonly)
+    - 2: Pending Verify
+    - 3: Swap Pending (boot.py)
+  - Index 1:
+    - The value here is a ticker for retries in attempting to update before a rollback occurs.

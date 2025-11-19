@@ -1,4 +1,4 @@
-# ------------------------- BlockTron.io Version 2.1  ---------------------------
+# ------------------------- BlockTron.io Version 2.3.1  ---------------------------
 import time
 import board
 import gc
@@ -518,11 +518,10 @@ def maybe_collect_garbage(current_time):
 
 # -------- OTA CONFIG (edit repo info only) --------
 OTA_ENABLED = True
-OTA_CHECK_INTERVAL = 60 #6 * 60 * 60  # seconds
+OTA_CHECK_INTERVAL = 60 * 60 * 6  # seconds
 
-OTA_REPO_BASE = "https://raw.githubusercontent.com/GingerSherpa/BlockTron/main/Source/"  # <-- set
-# This is the feature branch we tested with
-# OTA_REPO_BASE = "https://raw.githubusercontent.com/GingerSherpa/BlockTron/features/ota/Source/"  # <-- set
+OTA_REPO_BASE = "https://raw.githubusercontent.com/GingerSherpa/BlockTron/main/Source/"  # Main Code Branch
+
 OTA_TARGETS = {
     "code.py": f"{OTA_REPO_BASE}/code.py",
     "boot.py": f"{OTA_REPO_BASE}/boot.py",
@@ -550,6 +549,7 @@ def ota_mark_success():
             try:
                 if _ota_exists(_OTA_STAGE_FILE):
                     os.remove(_OTA_STAGE_FILE)
+		    microcontroller.reset()
             except OSError:
                 pass
             timed_print("OTA: confirmed")

@@ -1,4 +1,4 @@
-2.3.1 - Adding url path to production
+2.3.1 - Adding url path to production, updated version numbers, added reboot post successful update to restore USB
 2.3.0 - OTA Update Functionality Released, improvements to error handling
 2.2.0 - Founders Edition release, added option to dim display, added this version_history file to keep things sorted
 2.1.0 - Founders Edition release, fixed screen blank issue due to wifi issues and unhandled API exception, improved NTP sync reliability and retries

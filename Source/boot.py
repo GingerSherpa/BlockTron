@@ -1,4 +1,4 @@
-# boot.py — OTA-aware + original QR welcome 2.3.A
+# boot.py — 2.3.1
 
 import microcontroller, storage
 if microcontroller.nvm[0] in (1, 3):  # 1=download, 3=swap
