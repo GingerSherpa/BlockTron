@@ -535,8 +535,8 @@ def ota_mark_success():
         if microcontroller.nvm[0] == 2:
             microcontroller.nvm[0] = 0
             microcontroller.nvm[1] = 0
-            timed_print("OTA: confirmed restarting in 10 seconds")
-            time.sleep(10)
+            timed_print("OTA: confirmed restarting in 5 seconds")
+            time.sleep(5)
             microcontroller.reset()
     except Exception as e:
         timed_print("OTA confirm err:", e)
@@ -604,6 +604,7 @@ def check_for_update_and_stage():
         return
     remote = _remote_version_txt()
     if not remote or remote == _local_version_txt():
+        timed_print("OTA: No version change detected")
         return
     timed_print("OTA: version change detected; rebooting into download mode")
     microcontroller.nvm[0] = 1      # tell boot.py to disable MSC on next boot
