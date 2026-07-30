@@ -19,6 +19,7 @@ from urllib.parse import urlparse
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = PROJECT_ROOT / "Source"
 CODE_PATH = SOURCE_ROOT / "code.py"
+WEB_ROOT = PROJECT_ROOT / "emulator" / "web"
 
 STATIC_FILES = {
     "/": "index.html",
@@ -41,6 +42,22 @@ REQUIRED_BTC_LAYERS = {
 
 class ConfigError(RuntimeError):
     """Raised when display configuration cannot be read from the source."""
+
+
+def load_static_files(
+    web_root: Path = WEB_ROOT,
+) -> dict[str, tuple[bytes, str]]:
+    """Load the browser UI once so it survives checkout branch changes."""
+    assets = {}
+    for filename in sorted(set(STATIC_FILES.values())):
+        path = web_root / filename
+        try:
+            content = path.read_bytes()
+        except OSError as exc:
+            raise ConfigError(f"Unable to load emulator asset {path}: {exc}") from exc
+        content_type, _ = mimetypes.guess_type(path.name)
+        assets[filename] = (content, content_type or "application/octet-stream")
+    return assets
 
 
 def dim_color(color: int, level: int) -> int:
@@ -171,13 +188,14 @@ def _extract_text_layers(
 
 def extract_source_config(
     source: str,
+    source_path: Path = CODE_PATH,
 ) -> tuple[dict[str, Any], int, int, list[dict[str, Any]]]:
     """Extract display-only constants without importing hardware-bound code.py."""
     try:
-        tree = ast.parse(source, filename=str(CODE_PATH))
+        tree = ast.parse(source, filename=str(source_path))
     except SyntaxError as exc:
         raise ConfigError(
-            f"Source/code.py:{exc.lineno}: {exc.msg}"
+            f"{source_path}:{exc.lineno}: {exc.msg}"
         ) from exc
 
     values: dict[str, Any] = {}
@@ -332,7 +350,7 @@ def build_display_config(project_root: Path = PROJECT_ROOT) -> dict[str, Any]:
     except OSError as exc:
         raise ConfigError(f"Unable to read {code_path}: {exc}") from exc
 
-    values, width, height, layers = extract_source_config(source)
+    values, width, height, layers = extract_source_config(source, code_path)
     font_names = {layer["font"] for layer in layers}
     fonts = {
         font_name: parse_bdf(_safe_font_path(source_root, font_name))
@@ -362,10 +380,11 @@ class EmulatorHTTPServer(ThreadingHTTPServer):
         self,
         server_address: tuple[str, int],
         project_root: Path,
+        web_root: Path = WEB_ROOT,
         verbose: bool = False,
     ) -> None:
-        self.project_root = project_root
-        self.web_root = project_root / "emulator" / "web"
+        self.project_root = project_root.resolve()
+        self.static_files = load_static_files(web_root)
         self.verbose = verbose
         super().__init__(server_address, EmulatorRequestHandler)
 
@@ -408,16 +427,14 @@ class EmulatorRequestHandler(BaseHTTPRequestHandler):
         self._send_json(config, cache_control="no-store")
 
     def _serve_static(self, filename: str) -> None:
-        path = self.server.web_root / filename
         try:
-            content = path.read_bytes()
-        except OSError:
+            content, content_type = self.server.static_files[filename]
+        except KeyError:
             self.send_error(HTTPStatus.NOT_FOUND, "Static file not found")
             return
 
-        content_type, _ = mimetypes.guess_type(path.name)
         self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", content_type or "application/octet-stream")
+        self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
         self.send_header("Cache-Control", "no-cache")
         self.send_header("X-Content-Type-Options", "nosniff")
@@ -452,25 +469,37 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument(
+        "--project-root",
+        type=Path,
+        default=PROJECT_ROOT,
+        help="BlockTron checkout containing the Source directory to watch.",
+    )
     parser.add_argument("--verbose", action="store_true")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv if argv is not None else sys.argv[1:])
+    project_root = args.project_root.expanduser().resolve()
+    code_path = project_root / "Source" / "code.py"
+    if not code_path.is_file():
+        print(f"Unable to find firmware source: {code_path}", file=sys.stderr)
+        return 1
+
     try:
         server = EmulatorHTTPServer(
             (args.host, args.port),
-            project_root=PROJECT_ROOT,
+            project_root=project_root,
             verbose=args.verbose,
         )
-    except OSError as exc:
+    except (ConfigError, OSError) as exc:
         print(f"Unable to start emulator: {exc}", file=sys.stderr)
         return 1
 
     host, port = server.server_address[:2]
     print(f"BlockTron emulator: http://{host}:{port}", flush=True)
-    print("Watching Source/code.py and Source/fonts/*.bdf")
+    print(f"Watching {code_path} and {code_path.parent / 'fonts' / '*.bdf'}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

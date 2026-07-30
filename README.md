@@ -55,6 +55,19 @@ glyph pixels from the checked-in BDF fonts. It automatically repaints after
 those files change. It does not import or execute the firmware and never
 exposes Wi-Fi settings, API URLs, or device keys.
 
+The browser UI is loaded into memory when the server starts, so the preview
+keeps working while the checkout changes branches. Start it before switching
+branches and leave the same browser URL open; changes to `Source/code.py` and
+`Source/fonts` are detected within a second.
+
+The emulator can also run from a stable checkout while watching a different
+BlockTron worktree:
+
+```bash
+python3 /path/to/emulator-checkout/emulator/server.py \
+  --project-root /path/to/feature-checkout
+```
+
 Run its dependency-free test suite with:
 
 ```bash

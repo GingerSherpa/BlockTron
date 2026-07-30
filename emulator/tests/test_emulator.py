@@ -8,9 +8,11 @@ from pathlib import Path
 from emulator.server import (
     CODE_PATH,
     ConfigError,
+    STATIC_FILES,
     build_display_config,
     dim_color,
     extract_source_config,
+    load_static_files,
     parse_bdf,
     source_revision,
 )
@@ -108,6 +110,27 @@ class DisplayConfigTests(unittest.TestCase):
 
         self.assertNotEqual(initial, code_change)
         self.assertNotEqual(initial, font_change)
+
+
+class StaticAssetTests(unittest.TestCase):
+    def test_preloads_assets_before_the_watched_checkout_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            web_root = Path(temp_dir)
+            for filename in set(STATIC_FILES.values()):
+                (web_root / filename).write_bytes(filename.encode("ascii"))
+
+            assets = load_static_files(web_root)
+            for path in web_root.iterdir():
+                path.unlink()
+
+        self.assertEqual(assets["index.html"][0], b"index.html")
+        self.assertEqual(assets["styles.css"][1], "text/css")
+        self.assertEqual(assets["blocktron-logo.svg"][1], "image/svg+xml")
+
+    def test_reports_a_missing_static_asset_at_startup(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with self.assertRaisesRegex(ConfigError, "Unable to load emulator asset"):
+                load_static_files(Path(temp_dir))
 
 
 if __name__ == "__main__":
