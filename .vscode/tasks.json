@@ -8,6 +8,28 @@
 			"args": [],
 			"group": "build",
 			"problemMatcher": []
+		},
+		{
+			"label": "Preview LED Display",
+			"type": "shell",
+			"command": "python3 emulator/server.py",
+			"problemMatcher": [],
+			"runOptions": {
+				"instanceLimit": 1
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"windows": {
+				"command": "py .\\emulator\\server.py"
+			},
+			"osx": {
+				"command": "python3 emulator/server.py"
+			},
+			"linux": {
+				"command": "python3 emulator/server.py"
+			}
 		}
 	]
 }

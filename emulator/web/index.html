@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#111313">
+    <title>BlockTron BTC Display Emulator</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-lockup">
+          <h1>
+            <img
+              class="brand-logo"
+              src="/blocktron-logo.svg"
+              alt="BlockTron"
+              width="1229"
+              height="150"
+            >
+          </h1>
+          <p>BTC display emulator</p>
+        </div>
+      </div>
+      <output class="source-status" id="source-status" data-state="loading">
+        <span aria-hidden="true"></span>
+        <strong>Loading source</strong>
+      </output>
+    </header>
+
+    <main>
+      <section class="preview" aria-labelledby="preview-title">
+        <div class="preview-heading">
+          <div>
+            <h2 id="preview-title">64 × 32 panel</h2>
+            <p id="frame-summary">Loading BTC mode</p>
+          </div>
+          <label class="toggle">
+            <input id="led-grid" type="checkbox" checked>
+            <span aria-hidden="true"></span>
+            LED grid
+          </label>
+        </div>
+
+        <div class="panel-shell">
+          <canvas
+            id="display"
+            width="640"
+            height="320"
+            role="img"
+            aria-label="BlockTron 64 by 32 LED display preview"
+          ></canvas>
+        </div>
+
+        <div class="panel-meta">
+          <span id="logical-size">64 × 32 px</span>
+          <span id="lit-pixels">0 LEDs lit</span>
+          <span id="source-file">Source/code.py</span>
+        </div>
+      </section>
+
+      <aside class="controls" aria-labelledby="controls-title">
+        <div class="controls-heading">
+          <h2 id="controls-title">Frame</h2>
+          <button id="reset-frame" type="button">Reset</button>
+        </div>
+
+        <fieldset class="field">
+          <legend>View</legend>
+          <div class="segmented" data-testid="view-control">
+            <input id="view-dashboard" name="view" type="radio" value="dashboard" checked>
+            <label for="view-dashboard">Dashboard</label>
+            <input id="view-ticker" name="view" type="radio" value="ticker">
+            <label for="view-ticker">Ticker</label>
+          </div>
+        </fieldset>
+
+        <div class="field">
+          <label for="price">BTC price</label>
+          <input id="price" type="text" value="109600" maxlength="8" inputmode="numeric" spellcheck="false">
+        </div>
+
+        <div class="field">
+          <label for="block-height">Block height</label>
+          <input id="block-height" type="text" value="900736" maxlength="8" inputmode="numeric" spellcheck="false">
+        </div>
+
+        <div class="field">
+          <label for="moscow-time">Moscow time</label>
+          <input id="moscow-time" type="text" value="912" maxlength="4" inputmode="numeric" spellcheck="false">
+        </div>
+
+        <div class="field">
+          <div class="field-label">
+            <label for="clock">Clock</label>
+            <label class="toggle compact">
+              <input id="live-clock" type="checkbox" checked>
+              <span aria-hidden="true"></span>
+              Live
+            </label>
+          </div>
+          <input id="clock" type="text" value="0101" maxlength="4" inputmode="numeric" spellcheck="false">
+        </div>
+
+        <div class="field">
+          <label for="ticker">Ticker</label>
+          <input id="ticker" type="text" value="BITCOIN NETWORK ONLINE" maxlength="80" spellcheck="false">
+        </div>
+
+        <div class="field">
+          <div class="field-label">
+            <label for="brightness">Brightness</label>
+            <output id="brightness-value" for="brightness">10</output>
+          </div>
+          <input id="brightness" type="range" min="1" max="10" step="1" value="10">
+        </div>
+
+        <label class="toggle status-toggle">
+          <input id="status-pixel" type="checkbox">
+          <span aria-hidden="true"></span>
+          Status pixel
+        </label>
+      </aside>
+    </main>
+
+    <div class="error-banner" id="error-banner" role="alert" hidden></div>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

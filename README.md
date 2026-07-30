@@ -38,6 +38,45 @@ Designed for Adafruit CircuitPython 9.2.7 on 2025-04-01; Adafruit MatrixPortal S
 - Go to command palette and type "Tasks: Run Tasks"
 - Select or Type "Deploy to CircuitPython Device"
 
+# Local BTC Display Emulator
+Preview the 64x32 LED panel without copying files to the physical device:
+
+```bash
+python3 emulator/server.py
+```
+
+This requires Python 3.10 or newer and no third-party packages. On Windows, use
+`py emulator\server.py`. Then open
+[http://127.0.0.1:8765](http://127.0.0.1:8765), or run the VS Code task
+`Preview LED Display`.
+
+The emulator reads the six BTC-mode text layers from `Source/code.py` and
+glyph pixels from the checked-in BDF fonts. It automatically repaints after
+those files change. It does not import or execute the firmware and never
+exposes Wi-Fi settings, API URLs, or device keys.
+
+The browser UI is loaded into memory when the server starts, so the preview
+keeps working while the checkout changes branches. Start it before switching
+branches and leave the same browser URL open; changes to `Source/code.py` and
+`Source/fonts` are detected within a second.
+
+The emulator can also run from a stable checkout while watching a different
+BlockTron worktree:
+
+```bash
+python3 /path/to/emulator-checkout/emulator/server.py \
+  --project-root /path/to/feature-checkout
+```
+
+Run its dependency-free test suite with:
+
+```bash
+python3 -m unittest discover -s emulator/tests -v
+```
+
+The emulator covers display layout only. Network, OTA, memory, and hardware
+behavior still require a MatrixPortal device.
+
 # Important Identifiers
 - microconstroller.nvm has a few flags:
   - Index 0:
